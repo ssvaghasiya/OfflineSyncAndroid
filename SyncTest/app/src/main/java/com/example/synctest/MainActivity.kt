@@ -1,6 +1,9 @@
 package com.example.synctest
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.net.ConnectivityManager
@@ -21,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     var adapter: RecyclerAdapter? = null
     var data: MutableList<Contact>? = null
     var TAG = "MainActivity"
+    var broadcastReceiver: BroadcastReceiver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +33,11 @@ class MainActivity : AppCompatActivity() {
         rvNameList.adapter = adapter
         rvNameList.setHasFixedSize(true)
         readFromLocalStorage()
+        broadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                readFromLocalStorage()
+            }
+        }
     }
 
     public fun submitName(view: View) {
@@ -52,7 +61,6 @@ class MainActivity : AppCompatActivity() {
             data?.add(Contact(name, sync_status))
             adapter?.add(Contact(name, sync_status))
         }
-//        adapter?.addAll(data!!)
         adapter?.notifyDataSetChanged()
         cursor.close()
         dbHelper.close()
@@ -127,4 +135,13 @@ class MainActivity : AppCompatActivity() {
         dbHelper.close()
     }
 
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(broadcastReceiver, IntentFilter(DbContract().UI_UPDATE_BROADCAST))
+    }
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(broadcastReceiver)
+    }
 }
